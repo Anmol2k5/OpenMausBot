@@ -4,6 +4,8 @@ import { Plus, Mic, Square } from "lucide-react";
 import { useStore, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 
+const isMac = navigator.platform.startsWith("Mac");
+
 export function Composer({ bot }: { bot: Bot }) {
   const { dispatch } = useStore();
   const [text, setText] = useState("");
@@ -53,7 +55,15 @@ export function Composer({ bot }: { bot: Bot }) {
 
   const toggleMic = () => {
     if (!window.ogb) {
-      setSpeechError("Voice input needs the desktop app — run pnpm dev:desktop.");
+      setSpeechError(
+        isMac
+          ? "Voice input needs the desktop app — run pnpm dev:desktop."
+          : "Voice dictation is only available on macOS.",
+      );
+      return;
+    }
+    if (!isMac) {
+      setSpeechError("Voice dictation is only available on macOS.");
       return;
     }
     baseText.current = text.trim();

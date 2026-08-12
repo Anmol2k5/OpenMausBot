@@ -14,6 +14,7 @@
     "build:server": "tsc -p tsconfig.server.build.json",
     "build:speech": "swiftc -O electron/resources/speech-helper.swift -o electron/resources/speech-helper",
     "package": "pnpm build && pnpm build:server && pnpm build:speech && pnpm build:perm && electron-builder --mac --publish never",
+    "package:win": "npx vite build && npx tsc -p tsconfig.server.build.json && npx electron-builder --win --publish never",
     "build:perm": "swiftc -O electron/resources/perm-helper.swift -o electron/resources/perm-helper"
   },
   "dependencies": {

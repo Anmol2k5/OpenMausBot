@@ -19,6 +19,8 @@ import { useStore, type Bot } from "@/state/store";
 import { ApiKeyRow } from "./ApiKeys";
 import { cn } from "@/lib/cn";
 
+const isMac = navigator.platform.startsWith("Mac");
+
 async function api(path: string, init?: RequestInit): Promise<any> {
   const res = await fetch(path, { headers: { "content-type": "application/json" }, ...init });
   const body = await res.json().catch(() => ({}));
@@ -199,7 +201,7 @@ export function ComputerPanel({ bot }: { bot: Bot }) {
         {/* Screen preview */}
         <div className="mb-1.5 mt-2 flex items-center justify-between text-[13px] text-ink-secondary">
           <span>{bot.name}'s screen</span>
-          {phase === "local" && <span className="text-[11px]">this Mac</span>}
+          {phase === "local" && <span className="text-[11px]">{isMac ? "this Mac" : "local"}</span>}
         </div>
         <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl bg-card">
           {frameSrc ? (
@@ -217,7 +219,7 @@ export function ComputerPanel({ bot }: { bot: Bot }) {
                 {phase === "ready"
                   ? "Waiting for the first frame…"
                   : phase === "local"
-                    ? "Capturing this Mac's screen…"
+                    ? isMac ? "Capturing this Mac's screen…" : "Capturing local screen…"
                     : emptyState[phase]}
               </span>
             </div>
@@ -272,14 +274,14 @@ export function ComputerPanel({ bot }: { bot: Bot }) {
         <div className="mt-4 rounded-xl bg-card p-4">
           <div className="text-[15px] font-medium text-ink">Runs on</div>
           <div className="mt-0.5 text-[13px] text-ink-secondary">
-            {bot.computer ? "" : "Auto: the cloud box when one exists, else this Mac. "}Pick where this bot's
+            {bot.computer ? "" : `Auto: the cloud box when one exists${isMac ? ", else this Mac" : ""}. `}Pick where this bot's
             computer lives.
           </div>
           <div className="mt-3 flex overflow-hidden rounded-lg border border-hairline/40">
             {(
               [
                 ["cloud", "Cloud box"],
-                ["local", "This Mac"],
+                ["local", isMac ? "This Mac" : "Local (macOS)"],
                 ["off", "Off"],
               ] as const
             ).map(([mode, label], i) => (

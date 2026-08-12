@@ -6,6 +6,7 @@ import { startCua, stopCua, registerCuaIpc } from "./cua.mjs";
 import { startSpeech, stopSpeech } from "./speech.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isDarwin = process.platform === "darwin";
 // 127.0.0.1 explicitly — vite binds IPv4; a bare "localhost" here can
 // resolve to ::1 and paint a black window
 const DEV_URL = process.env.ELECTRON_START_URL ?? "http://127.0.0.1:5199";
@@ -78,7 +79,7 @@ async function startServerPackaged() {
 const ERROR_PAGE =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
-    `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#070707;color:#fcfcfc;font:15px -apple-system,system-ui"><div style="text-align:center;max-width:360px"><div style="font-size:40px">🐭</div><h2 style="font-weight:600;margin:12px 0 6px">Couldn't start the bot server</h2><p style="color:#fcfcfc99;line-height:1.5">Something else is using its ports. Quit and reopen OpenMausBot — if it keeps happening, restart your Mac.</p></div></body>`,
+    `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#070707;color:#fcfcfc;font:15px -apple-system,system-ui"><div style="text-align:center;max-width:360px"><div style="font-size:40px">🐭</div><h2 style="font-weight:600;margin:12px 0 6px">Couldn't start the bot server</h2><p style="color:#fcfcfc99;line-height:1.5">Something else is using its ports. Quit and reopen OpenMausBot — if it keeps happening, restart the app.</p></div></body>`,
   );
 
 function createWindow() {
@@ -89,8 +90,7 @@ function createWindow() {
     minHeight: 600,
     icon: APP_ICON,
     backgroundColor: "#070707",
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 16 },
+    ...(isDarwin ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 16 } } : {}),
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.cjs"),
@@ -122,11 +122,15 @@ ipcMain.handle("screen:frame", async () => {
 // Onboarding permission checks. Status reads are free; the mic request
 // pops the real TCC prompt attributed to the app. Screen Recording has no
 // programmatic request — the first desktopCapturer call prompts.
-ipcMain.handle("perm:status", () => ({
-  mic: systemPreferences.getMediaAccessStatus?.("microphone") ?? "unknown",
-  screen: systemPreferences.getMediaAccessStatus?.("screen") ?? "unknown",
-}));
+ipcMain.handle("perm:status", () => {
+  if (!isDarwin) return { mic: "unavailable", screen: "unavailable" };
+  return {
+    mic: systemPreferences.getMediaAccessStatus?.("microphone") ?? "unknown",
+    screen: systemPreferences.getMediaAccessStatus?.("screen") ?? "unknown",
+  };
+});
 ipcMain.handle("perm:request-mic", async () => {
+  if (!isDarwin) return false;
   try {
     return await systemPreferences.askForMediaAccess("microphone");
   } catch {
@@ -142,6 +146,7 @@ const PERM_HELPER = app.isPackaged
   ? path.join(process.resourcesPath, "perm-helper")
   : path.join(__dirname, "resources", "perm-helper");
 ipcMain.handle("perm:request-screen", async () => {
+  if (!isDarwin) return "unavailable";
   // CGRequestScreenCaptureAccess via the helper — registers the app in the
   // pane and shows the system dialog; child inherits the app's TCC identity
   await new Promise((resolve) => {
@@ -153,6 +158,7 @@ ipcMain.handle("perm:request-screen", async () => {
 // macOS never re-prompts a denied permission — the only path is System
 // Settings; deep-link straight to the right privacy pane.
 ipcMain.handle("perm:open-settings", (_event, pane) => {
+  if (!isDarwin) return; // no equivalent deep-link on Windows
   const panes = {
     mic: "Privacy_Microphone",
     screen: "Privacy_ScreenCapture",
@@ -164,6 +170,7 @@ ipcMain.handle("perm:open-settings", (_event, pane) => {
 });
 
 ipcMain.handle("speech:start", (event) => {
+  if (!isDarwin) return; // Swift speech helper is macOS only
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) startSpeech(win);
 });

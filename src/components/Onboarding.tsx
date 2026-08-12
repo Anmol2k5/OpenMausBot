@@ -15,6 +15,7 @@ type InstanceRow = {
 };
 
 const isElectron = navigator.userAgent.includes("Electron");
+const isMac = navigator.platform.startsWith("Mac");
 
 function StatusRow({
   ok,
@@ -128,7 +129,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           <div className="flex flex-col">
             <h1 className="text-[18px] font-semibold text-ink">Your engines</h1>
             <p className="mt-1 text-[13.5px] text-ink-secondary">
-              Bots run on the AI tools already on this Mac — here&rsquo;s what we found.
+              Bots run on the AI tools already on this machine &mdash; here&rsquo;s what we found.
             </p>
             <div className="mt-4 flex flex-col gap-2.5">
               {!instances ? (
@@ -163,7 +164,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               )}
             </div>
             <button
-              onClick={() => (isElectron ? setStep(2) : finish())}
+              onClick={() => (isElectron && isMac ? setStep(2) : finish())}
               className="mt-5 w-full rounded-lg bg-accent py-2.5 text-[15px] font-medium text-white"
             >
               Continue
@@ -214,7 +215,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                   <div>
                     <div className="text-[14px] font-medium text-ink">Screen preview</div>
                     <div className="mt-0.5 text-[12.5px] text-ink-secondary">
-                      Shows this Mac&rsquo;s screen in the Computer panel when a bot works locally.
+                      Shows this machine&rsquo;s screen in the Computer panel when a bot works locally.
                     </div>
                   </div>
                 </div>

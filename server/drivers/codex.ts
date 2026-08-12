@@ -91,11 +91,14 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       // billing to pay-as-you-go (agentcal)
       delete env.OPENAI_API_KEY;
 
+      const isWin = process.platform === "win32";
       const child = spawn(config.cli, ["app-server"], {
         cwd: turn.cwd ?? homedir(),
         env,
         stdio: ["pipe", "pipe", "pipe"],
-        detached: true,
+        detached: !isWin, // POSIX process-group kill only
+        shell: isWin, // .cmd shim resolution on Windows
+        windowsHide: true,
       });
 
       const state = { settled: false, lastText: "" };
@@ -118,7 +121,11 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
 
       const stop = () => {
         try {
-          process.kill(-child.pid!, "SIGTERM");
+          if (isWin) {
+            execFile("taskkill", ["/pid", String(child.pid!), "/T", "/F"], { windowsHide: true }, () => {});
+          } else {
+            process.kill(-child.pid!, "SIGTERM");
+          }
         } catch {
           try {
             child.kill("SIGTERM");

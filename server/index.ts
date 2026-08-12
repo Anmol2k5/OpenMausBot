@@ -199,19 +199,30 @@ function stopScreenPoller(botId: string): Frame | null {
   return entry.last;
 }
 
-// Local computer-use contract written by Electron main on startup
-// (~/Library/Application Support/OpenMausBot/cua-connection.json). Read
-// fresh each turn — Electron may restart or permissions may change.
+// Local computer-use contract written by Electron main on startup.
+// Read fresh each turn — Electron may restart or permissions may change.
+// Paths: macOS ~/Library/Application Support/<name>, Windows %APPDATA%/<name>,
+// Linux ~/.config/<name>
 function readCuaConnection(): { command: string; args: string[]; env: Record<string, string> } | null {
-  // new name first; pre-rename desktop builds used the old directory
-  for (const dir of ["OpenMausBot", "openmausbot", "OpenGrokBot", "opengrokbot"]) {
-    try {
-      const p = join(homedir(), "Library", "Application Support", dir, "cua-connection.json");
-      const conn = JSON.parse(readFileSync(p, "utf8"));
-      if (!conn || conn.mode === "unavailable" || !conn.mcpCommand) continue;
-      return { command: conn.mcpCommand, args: conn.mcpArgs ?? ["mcp"], env: conn.mcpEnv ?? {} };
-    } catch {
-      /* try the next location */
+  const names = ["OpenMausBot", "openmausbot", "OpenGrokBot", "opengrokbot"];
+  const bases: string[] = [];
+  if (process.platform === "darwin") {
+    bases.push(join(homedir(), "Library", "Application Support"));
+  } else if (process.platform === "win32") {
+    bases.push(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"));
+  } else {
+    bases.push(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"));
+  }
+  for (const base of bases) {
+    for (const dir of names) {
+      try {
+        const p = join(base, dir, "cua-connection.json");
+        const conn = JSON.parse(readFileSync(p, "utf8"));
+        if (!conn || conn.mode === "unavailable" || !conn.mcpCommand) continue;
+        return { command: conn.mcpCommand, args: conn.mcpArgs ?? ["mcp"], env: conn.mcpEnv ?? {} };
+      } catch {
+        /* try the next location */
+      }
     }
   }
   return null;

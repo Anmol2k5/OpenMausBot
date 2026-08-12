@@ -25,10 +25,6 @@ extraResources:
     to: ui
   - from: dist-server
     to: server
-  - from: electron/resources/speech-helper
-    to: speech-helper
-  - from: electron/resources/perm-helper
-    to: perm-helper
 
 mac:
   target:
@@ -48,7 +44,26 @@ mac:
   # Notarization runs manually after the build (notarytool + staple),
   # mirroring the BlueyLite ship_release.sh flow.
   notarize: false
+  extraResources:
+    - from: electron/resources/speech-helper
+      to: speech-helper
+    - from: electron/resources/perm-helper
+      to: perm-helper
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+    - target: zip
+      arch: x64
+  icon: build/icon-1024.png
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
 
 dmg:
   sign: true
   artifactName: OpenMausBot-${version}.dmg
+

@@ -310,11 +310,14 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       delete env.CLAUDECODE;
       delete env.CLAUDE_CODE_ENTRYPOINT;
 
+      const isWin = process.platform === "win32";
       const child = spawn(config.cli, args, {
         cwd: turn.cwd ?? homedir(),
         env,
         stdio: ["pipe", "pipe", "pipe"],
-        detached: true, // own process group: killing -pid reaps child MCP servers
+        detached: !isWin, // own process group: killing -pid reaps child MCP servers (POSIX only)
+        shell: isWin, // .cmd shim resolution on Windows
+        windowsHide: true,
       });
 
       let settled = false;
@@ -412,7 +415,11 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
 
       const stop = () => {
         try {
-          process.kill(-child.pid!, "SIGTERM");
+          if (isWin) {
+            execFile("taskkill", ["/pid", String(child.pid!), "/T", "/F"], { windowsHide: true }, () => {});
+          } else {
+            process.kill(-child.pid!, "SIGTERM");
+          }
         } catch {
           try {
             child.kill("SIGTERM");
